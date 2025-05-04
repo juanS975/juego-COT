@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ahorcado: Riesgo Psicosocial</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f0f8ff;
+            padding: 20px;
+        }
+        h1 {
+            color: #2c3e50;
+        }
+        #juego {
+            margin: 20px auto;
+            max-width: 600px;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        #palabra {
+            font-size: 2em;
+            letter-spacing: 10px;
+            margin: 20px 0;
+        }
+        #letras-usadas {
+            color: #7f8c8d;
+            margin: 10px 0;
+        }
+        #vidas {
+            font-size: 1.2em;
+            color: #e74c3c;
+        }
+        #puntos {
+            font-size: 1.2em;
+            color: #2ecc71;
+        }
+        #temporizador {
+            font-size: 1.5em;
+            color: #3498db;
+            margin: 10px 0;
+        }
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #2980b9;
+        }
+        #pregunta {
+            margin: 20px 0;
+            padding: 10px;
+            background: #ecf0f1;
+            border-radius: 5px;
+        }
+        #final {
+            display: none;
+            margin-top: 20px;
+            padding: 20px;
+            background: #2ecc71;
+            color: white;
+            border-radius: 10px;
+        }
+        #imagen-ahorcado {
+            font-size: 3em;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>⚠️ Ahorcado: Depresión y Riesgo Psicosocial</h1>
+    <div id="juego">
+        <div id="temporizador">⏱️ Tiempo: <span id="tiempo">60</span>s</div>
+        <div id="imagen-ahorcado">😊</div>
+        <div id="palabra"></div>
+        <div id="letras-usadas">Letras usadas: </div>
+        <div id="vidas">❤️ Vidas: 6</div>
+        <div id="puntos">⭐ Puntos: 0</div>
+        <input type="text" id="letra" maxlength="1" placeholder="Escribe una letra">
+        <button onclick="adivinarLetra()">Intentar</button>
+        
+        <div id="pregunta" style="display: none;">
+            <h3 id="texto-pregunta"></h3>
+            <div id="opciones"></div>
+            <button onclick="responderPregunta()">Responder</button>
+        </div>
+        
+        <div id="final">
+            <h2 id="mensaje-final"></h2>
+            <p id="puntos-final"></p>
+            <h3>📚 Recursos de Ayuda:</h3>
+            <p>La depresión laboral es un riesgo psicosocial reconocido por la OIT. Busca ayuda si:</p>
+            <ul style="text-align: left;">
+                <li>Sientes fatiga crónica o desmotivación.</li>
+                <li>Experimentas acoso laboral (mobbing).</li>
+                <li>Tienes dificultad para desconectar del trabajo.</li>
+            </ul>
+            <p>🔗 Más información: <a href="https://www.who.int/es/health-topics/depression" target="_blank" style="color: white;">OMS - Depresión</a></p>
+        </div>
+    </div>
+
+    <script>
+        // Palabras y preguntas
+        const palabras = [
+            {
+                palabra: "DEPRESION",
+                pregunta: "¿Cuál es un síntoma común de la depresión en el trabajo?",
+                opciones: [
+                    "Alta productividad constante",
+                    "Fatiga crónica y desmotivación",
+                    "Exceso de energía"
+                ],
+                respuesta: 1
+            },
+            {
+                palabra: "ACOSO",
+                pregunta: "¿El acoso laboral puede ser un factor de riesgo psicosocial?",
+                opciones: [
+                    "No, solo afecta el rendimiento",
+                    "Sí, aumenta ansiedad y depresión",
+                    "Solo si es físico"
+                ],
+                respuesta: 1
+            },
+            {
+                palabra: "ESTRES",
+                pregunta: "¿El estrés laboral prolongado puede derivar en depresión?",
+                opciones: [
+                    "Nunca",
+                    "Solo en casos extremos",
+                    "Sí, es un detonante común"
+                ],
+                respuesta: 2
+            },
+            {
+                palabra: "AISLAMIENTO",
+                pregunta: "¿Por qué el aislamiento social agrava la depresión?",
+                opciones: [
+                    "Reduce redes de apoyo emocional",
+                    "Mejora la concentración",
+                    "No tiene relación"
+                ],
+                respuesta: 0
+            },
+            {
+                palabra: "AUTOESTIMA",
+                pregunta: "¿Cómo afecta la baja autoestima en el trabajo?",
+                opciones: [
+                    "Aumenta la productividad",
+                    "Disminuye la capacidad para manejar presión",
+                    "No influye"
+                ],
+                respuesta: 1
+            }
+        ];
+
+        // Variables del juego
+        let palabraActual;
+        let palabraAdivinada;
+        let letrasUsadas = [];
+        let vidas = 6;
+        let puntos = 0;
+        let temporizador;
+        let tiempo = 60;
+        let indicePalabra = 0;
+
+        // Iniciar juego
+        function iniciarJuego() {
+            if (indicePalabra >= palabras.length) {
+                terminarJuego(true);
+                return;
+            }
+            
+            palabraActual = palabras[indicePalabra].palabra;
+            palabraAdivinada = Array(palabraActual.length).fill('_');
+            letrasUsadas = [];
+            vidas = 6;
+            tiempo = 60;
+            
+            actualizarInterfaz();
+            document.getElementById('pregunta').style.display = 'none';
+            document.getElementById('letra').value = '';
+            document.getElementById('letra').focus();
+            
+            // Temporizador
+            clearInterval(temporizador);
+            temporizador = setInterval(() => {
+                tiempo--;
+                document.getElementById('tiempo').textContent = tiempo;
+                
+                if (tiempo <= 0) {
+                    clearInterval(temporizador);
+                    perderVida();
+                }
+            }, 1000);
+        }
+
+        // Actualizar interfaz
+        function actualizarInterfaz() {
+            document.getElementById('palabra').textContent = palabraAdivinada.join(' ');
+            document.getElementById('letras-usadas').textContent = 'Letras usadas: ' + letrasUsadas.join(', ');
+            document.getElementById('vidas').textContent = '❤️ Vidas: ' + vidas;
+            document.getElementById('puntos').textContent = '⭐ Puntos: ' + puntos;
+            
+            // Actualizar imagen del ahorcado
+            const imagenes = ["😊", "😟", "😨", "😰", "😥", "😓", "😵"];
+            document.getElementById('imagen-ahorcado').textContent = imagenes[6 - vidas];
+        }
+
+        // Adivinar letra
+        function adivinarLetra() {
+            const letraInput = document.getElementById('letra');
+            const letra = letraInput.value.toUpperCase();
+            
+            if (!letra || letrasUsadas.includes(letra)) {
+                alert('¡Letra no válida o ya usada!');
+                return;
+            }
+            
+            letrasUsadas.push(letra);
+            
+            if (palabraActual.includes(letra)) {
+                // Letra correcta
+                for (let i = 0; i < palabraActual.length; i++) {
+                    if (palabraActual[i] === letra) {
+                        palabraAdivinada[i] = letra;
+                    }
+                }
+                
+                // Verificar si adivinó toda la palabra
+                if (!palabraAdivinada.includes('_')) {
+                    clearInterval(temporizador);
+                    puntos += 10;
+                    mostrarPregunta();
+                }
+            } else {
+                // Letra incorrecta
+                perderVida();
+            }
+            
+            actualizarInterfaz();
+            letraInput.value = '';
+        }
+
+        // Perder vida
+        function perderVida() {
+            vidas--;
+            actualizarInterfaz();
+            
+            if (vidas <= 0) {
+                clearInterval(temporizador);
+                terminarJuego(false);
+            }
+        }
+
+        // Mostrar pregunta
+        function mostrarPregunta() {
+            const pregunta = palabras[indicePalabra];
+            document.getElementById('texto-pregunta').textContent = pregunta.pregunta;
+            
+            const opcionesDiv = document.getElementById('opciones');
+            opcionesDiv.innerHTML = '';
+            
+            pregunta.opciones.forEach((opcion, index) => {
+                const radio = document.createElement('input');
+                radio.type = 'radio';
+                radio.name = 'opcion';
+                radio.value = index;
+                radio.id = 'opcion' + index;
+                
+                const label = document.createElement('label');
+                label.htmlFor = 'opcion' + index;
+                label.textContent = opcion;
+                
+                opcionesDiv.appendChild(radio);
+                opcionesDiv.appendChild(label);
+                opcionesDiv.appendChild(document.createElement('br'));
+            });
+            
+            document.getElementById('pregunta').style.display = 'block';
+        }
+
+        // Responder pregunta
+        function responderPregunta() {
+            const seleccionado = document.querySelector('input[name="opcion"]:checked');
+            
+            if (!seleccionado) {
+                alert('¡Selecciona una opción!');
+                return;
+            }
+            
+            const respuesta = parseInt(seleccionado.value);
+            const pregunta = palabras[indicePalabra];
+            
+            if (respuesta === pregunta.respuesta) {
+                puntos += 5;
+                document.getElementById('puntos').textContent = '⭐ Puntos: ' + puntos;
+            }
+            
+            indicePalabra++;
+            iniciarJuego();
+        }
+
+        // Terminar juego
+        function terminarJuego(ganador) {
+            clearInterval(temporizador);
+            
+            const finalDiv = document.getElementById('final');
+            finalDiv.style.display = 'block';
+            
+            if (ganador) {
+                document.getElementById('mensaje-final').textContent = '🎉 ¡Felicidades! Has completado el juego.';
+            } else {
+                document.getElementById('mensaje-final').textContent = '😢 Game Over. Sigue aprendiendo sobre el tema.';
+            }
+            
+            document.getElementById('puntos-final').textContent = 'Puntuación final: ' + puntos + ' puntos';
+            document.getElementById('juego').style.display = 'none';
+        }
+
+        // Iniciar al cargar la página
+        window.onload = iniciarJuego;
+    </script>
+</body>
+</html>
